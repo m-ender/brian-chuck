@@ -8,6 +8,8 @@ class Instance
         '-'.ord  => :dec,
         '>'.ord  => :right,
         '<'.ord  => :left,
+        '}'.ord  => :scan_right,
+        '{'.ord  => :scan_left,
         '?'.ord  => :toggle,
         ','.ord  => :input,
         '.'.ord  => :output,
@@ -29,13 +31,15 @@ class Instance
         when :inc
             @tape.set(@tape.get + 1)
         when :dec
-            @tape.set(@tape.set - 1)
+            @tape.set(@tape.get - 1)
         when :right
-            @tape.move_right
             @tape.move_right
         when :left
             @tape.move_left
-            @tape.move_left
+        when :scan_right
+            @tape.move_right while @tape.get != 0
+        when :scan_left
+            @tape.move_left while @tape.ip > 0 && @tape.get != 0
         when :toggle
             if @tape.get != 0
                 @tape.move_right
@@ -51,7 +55,7 @@ class Instance
 
         return :terminate if result != :toggle && @ip == @code.size - 1
 
-        move_right
+        move_right if result != :toggle
 
         return result
     end
@@ -84,7 +88,6 @@ class Instance
 
     def input() end
     def output() end
-
 end
 
 class Brian < Instance
@@ -92,11 +95,19 @@ class Brian < Instance
         byte = STDIN.read(1)
         @tape.set(byte ? byte.ord : -1)
     end
+
+    def to_s
+        "Brian: #{@code.map{|i|(i%256).chr}.join}\n" + ' '*(@ip+7) + '^'
+    end
 end
 
 class Chuck < Instance
     def output
         $> << (@tape.get % 256).chr
+    end
+
+    def to_s
+        "Chuck: #{@code.map{|i|(i%256).chr}.join}\n" + ' '*(@ip+7) + '^'
     end
 end
 
@@ -129,18 +140,16 @@ class BrianChuck
     end
 
     def run
+        (puts @instances; puts) if @debug_level > 1
+
         loop do
             result = current.tick
-            if @debug_level > 1 || @debug_level >> 0 && result == :debug
-                p @instances[0]
-                p @instances[1]
-            end
 
-            if result == :terminate
-                break
-            elsif result == :toggle
-                toggle
-            end
+            toggle if result == :toggle
+            
+            (puts @instances; puts) if @debug_level > 1 || @debug_level >> 0 && result == :debug
+            
+            break if result == :terminate
         end
     end
 
