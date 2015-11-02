@@ -124,8 +124,8 @@ class BrianChuck
 
         src.gsub!('_',"\0")
 
-        if src[/`/]
-            brian, chuck = src.split('`', 2).map(&:strip)
+        if src[/```/]
+            brian, chuck = src.split('```', 2).map(&:strip)
         else
             brian, chuck = src.lines.map(&:chomp)
         end
