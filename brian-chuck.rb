@@ -122,6 +122,8 @@ class BrianChuck
     def initialize(src, debug_level=false)
         @debug_level = debug_level
 
+        src.gsub!('_',"\0")
+
         if src[/`/]
             brian, chuck = src.split('`', 2).map(&:strip)
         else
