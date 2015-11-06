@@ -13,7 +13,8 @@ class Instance
         '?'.ord  => :toggle,
         ','.ord  => :input,
         '.'.ord  => :output,
-        '!'.ord  => :debug
+        '!'.ord  => :debug,
+        '@'.ord  => :debug_terminate
     }
 
     OPERATORS.default = :nop
@@ -51,6 +52,8 @@ class Instance
             output
         when :debug
             result = :debug
+        when :debug_terminate
+            result = :debug_terminate
         end
 
         return :terminate if result != :toggle && @ip == @code.size - 1
@@ -88,6 +91,17 @@ class Instance
 
     def input() end
     def output() end
+
+    def to_s
+        str = self.class.name + ": \n"
+        ip = @ip
+        @code.map{|i|(i%256).chr}.join.lines.map do |l|
+            str << l.chomp << $/
+            str << ' '*ip << "^\n" if 0 <= ip && ip < l.size
+            ip -= l.size
+        end
+        str
+    end
 end
 
 class Brian < Instance
@@ -95,19 +109,11 @@ class Brian < Instance
         byte = STDIN.read(1)
         @tape.set(byte ? byte.ord : -1)
     end
-
-    def to_s
-        "Brian: #{@code.map{|i|(i%256).chr}.join}\n" + ' '*(@ip+7) + '^'
-    end
 end
 
 class Chuck < Instance
     def output
         $> << (@tape.get % 256).chr
-    end
-
-    def to_s
-        "Chuck: #{@code.map{|i|(i%256).chr}.join}\n" + ' '*(@ip+7) + '^'
     end
 end
 
@@ -149,9 +155,9 @@ class BrianChuck
 
             toggle if result == :toggle
             
-            (puts @instances; puts) if @debug_level > 1 || @debug_level >> 0 && result == :debug
+            (puts @instances; puts) if @debug_level > 1 || @debug_level > 0 && (result == :debug || result == :debug_terminate)
             
-            break if result == :terminate
+            break if result == :terminate || @debug_level > 0 && result == :debug_terminate
         end
     end
 
